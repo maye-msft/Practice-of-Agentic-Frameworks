@@ -68,19 +68,6 @@ The source represents how the prompt of this node is generated, which is generat
   type: llm
   source:
     type: code
-
-```yaml
-  inputs:
-    deployment_name: gpt-4o
-    model: gpt-4o
-    max_tokens: "1024"
-    temperature: "0.7"
-    chat_history: ${inputs.chat_history}
-    question: ${inputs.question}
-  name: chat
-  type: llm
-  source:
-    type: code
     path: chat.jinja2
   api: chat
   connection: open_ai_connection
