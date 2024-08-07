@@ -12,20 +12,14 @@ inputs:
 outputs:
   answer:
     type: string
-    reference: ${chat.output}
+    reference: ${langchain_task.output}
     is_chat_output: true
 nodes:
-- name: chat
-  type: llm
+- name: langchain_task
+  type: python
   source:
     type: code
-    path: chat.jinja2
+    path: langchain_task.py
   inputs:
-    deployment_name: gpt-4o
-    model: gpt-4o
-    max_tokens: "256"
-    temperature: "0.7"
-    chat_history: ${inputs.chat_history}
     question: ${inputs.question}
-  connection: open_ai_connection
-  api: chat
+    chat_history: ${inputs.chat_history}

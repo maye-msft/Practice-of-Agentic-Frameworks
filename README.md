@@ -10,18 +10,18 @@ With the popularity of intelligent agents, in order to simplify their developmen
 - [Promptflow](https://microsoft.github.io/promptflow/)
     > Prompt flow is a suite of development tools designed to streamline the end-to-end development cycle of LLM-based AI applications, from ideation, prototyping, testing, evaluation to production deployment and monitoring. It makes prompt engineering much easier and enables you to build LLM apps with production quality.
 
-- [AutoGen](https://microsoft.github.io/autogen/)
-    > AutoGen is an open-source programming framework for building AI agents and facilitating cooperation among multiple agents to solve tasks. AutoGen aims to provide an easy-to-use and flexible framework for accelerating development and research on agentic AI, like PyTorch for Deep Learning. It offers features such as agents that can converse with other agents, LLM and tool use support, autonomous and human-in-the-loop workflows, and multi-agent conversation patterns.s
+- [LangChain](https://python.langchain.com/v0.2/docs/introduction/)
+    > LangChain is a framework designed to simplify the creation of applications using large language models (LLMs). As a language model integration framework, LangChain's use-cases largely overlap with those of language models in general, including document analysis and summarization, chatbots, and code analysis.
 
-- [TaskWeaver](https://microsoft.github.io/TaskWeaver/)
-    > TaskWeaver is a code-first agent framework for seamlessly planning and executing data analytics tasks. This innovative framework interprets user requests through coded snippets and efficiently coordinates a variety of plugins in the form of functions to execute data analytics or workflow automation tasks.
+- [LlamaIndex](https://docs.llamaindex.ai/en/stable/)
+    > LlamaIndex is a framework for building context-augmented generative AI applications with LLMs.
 
  We will demonstrate the development practices of these frameworks in 
  - Chatbot
--  Function invocation
- - Task flow orchestration
+ - Agent Implementation
+ - Workflow orchestration
  - Retrieval-Augmented Generation(RAG)
- - Code generation and execution
+
 
 ## Chatbot
 
@@ -155,7 +155,7 @@ source .venv/bin/activate
 cd chatbot/promptflow
 pip install -r requirements.txt
 # Create the connection
-pf connection create --file ../../connections/azure_openai.yml --set api_key=<your_api_key> api_base=<your_api_base> --name open_ai_connection
+pf connection create --file ../../connections/azure_openai.yml --set api_key=<your_api_key>  api_base=<your_api_base> --name open_ai_connection
 # Run the flow locally
 pf flow test --flow . --interactive --ui
 ```
@@ -165,3 +165,177 @@ You can open the URL show in the console with your browser to interact with the 
 ![promptflow chatbot ui](./images/promptflow-chatbot-ui.png)
 
 
+### LangChain
+
+Compared with Promptflow, AutoGen is more code-oriented. In this example, we can see that the chatbot is implemented in a Python script. It looks like simpler than Promptflow. But it cna only run in terminal.
+
+```python
+llm = AzureChatOpenAI(
+    openai_api_key=os.environ["OPENAI_API_KEY"],     
+    openai_api_type=os.environ["OPENAI_API_TYPE"],
+    openai_api_version=os.environ["OPENAI_API_VERSION"],
+    azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],  
+    deployment_name=os.environ["CHAT_MODEL_DEPLOYMENT_NAME"], 
+    temperature=0,
+)
+
+prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", "You are smart agent to answer any question."),
+        ("user", "{input}"),
+    ]
+)
+
+chain = LLMChain(llm=llm, prompt=prompt, output_key="metrics")
+res = chain({"input": "What is ChatGPT?"})
+print(res["metrics"])
+```
+
+It initializes an AzureChatOpenAI object, which is a wrapper of the Azure OpenAI API. From this example, we can also find LangChain has good support for prompt generation. LLMChain is a class that can be used to chain the LLM model and the prompt together. 
+
+And here is an experiment to integrate the LangChain chatbot with Promptflow, so that we can leverage Promptflow UI to run LangChain application.
+
+Here we use the Promptflow tool to make the LangChain chatbot as a task of the flow. You can find more information about the Promptflow tool in later chapters.
+
+```python
+# Create a MessagesPlaceholder for the chat history
+history_placeholder = MessagesPlaceholder("history")
+
+# Construct the prompt template
+prompt_template = ChatPromptTemplate.from_messages([
+    ("system", "You are smart agent to answer any question."),
+    history_placeholder,
+    ("user", "{input}")
+])
+    
+@tool
+def langhcian_task(question : str, chat_history : list) -> str:
+    chain = LLMChain(llm=llm, prompt=prompt_template, output_key="metrics")
+    res = chain({"input": question, "history": format_chat_history(chat_history)})
+    return res["metrics"]
+    
+def format_chat_history(chat_history):
+    formatted_chat_history = []
+    for message in chat_history:
+        if "inputs" in message:
+            formatted_chat_history.append(("user", message["inputs"]["question"]))
+        if "outputs" in message:
+            formatted_chat_history.append(("system", message["outputs"]["answer"]))
+    return formatted_chat_history
+```
+
+And the flow.dag.yml file is like this.
+
+```yaml
+$schema: https://azuremlschemas.azureedge.net/promptflow/latest/Flow.schema.json
+environment:
+  python_requirements_txt: requirements.txt
+inputs:
+  chat_history:
+    type: list
+    default: []
+  question:
+    type: string
+    is_chat_input: true
+    default: What is ChatGPT?
+outputs:
+  answer:
+    type: string
+    reference: ${langchain_task.output}
+    is_chat_output: true
+nodes:
+- name: langchain_task
+  type: python
+  source:
+    type: code
+    path: langchain_task.py
+  inputs:
+    question: ${inputs.question}
+    chat_history: ${inputs.chat_history}
+```
+
+You can find the complete code example in this [directory](./chatbot/langchain/).
+
+Here is the command to start this chatbot which is the same as the Promptflow chatbot.
+
+```shell
+# Run the flow locally
+pf flow test --flow . --interactive --ui
+```
+
+### LlamaIndex
+
+The chatbot based on LlamaIndex is also implemented in a Python script. It is similar to LangChain.
+
+```python
+llm = AzureOpenAI(
+    model="gpt-4o",
+    deployment_name=os.environ["CHAT_MODEL_DEPLOYMENT_NAME"],
+    api_key=os.environ["OPENAI_API_KEY"],
+    azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
+    api_version=os.environ["OPENAI_API_VERSION"],
+)
+
+chat_engine = SimpleChatEngine.from_defaults(llm=llm)
+
+response = chat_engine.chat(
+    "What is ChatGPT?"
+)
+print(response)
+```
+
+And we can also integrate the LlamaIndex chatbot with Promptflow.
+
+```python
+llm = AzureOpenAI(
+    model="gpt-4o",
+    deployment_name=os.environ["CHAT_MODEL_DEPLOYMENT_NAME"],
+    api_key=os.environ["OPENAI_API_KEY"],
+    azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
+    api_version=os.environ["OPENAI_API_VERSION"],
+)
+    
+chat_engine = SimpleChatEngine.from_defaults(llm=llm)
+
+@tool
+def llama_task(question : str) -> str:
+    response = chat_engine.chat(
+        question
+    )
+    return response.response
+```
+
+And the flow.dag.yml file is like this.
+
+```yaml
+$schema: https://azuremlschemas.azureedge.net/promptflow/latest/Flow.schema.json
+environment:
+  python_requirements_txt: requirements.txt
+inputs:
+  question:
+    type: string
+    is_chat_input: true
+    default: What is ChatGPT?
+outputs:
+  answer:
+    type: string
+    reference: ${llamaindex_task.output}
+    is_chat_output: true
+nodes:
+- name: llamaindex_task
+  type: python
+  source:
+    type: code
+    path: llamaindex_task.py
+  inputs:
+    question: ${inputs.question}
+```
+
+Here is the command to start this chatbot which is the same as the Promptflow and LangChain chatbot.
+
+```shell
+# Run the flow locally
+pf flow test --flow . --interactive --ui
+```
+
+You may find the chatbot based on LlamaIndex supports chat history by default.

@@ -1,0 +1,4 @@
+pyautogen
+python-dotenv
+promptflow
+promptflow-tools
