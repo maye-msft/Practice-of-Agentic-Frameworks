@@ -1,0 +1,21 @@
+# system:
+You are a helpful assistant. You can answer questions with the context provided. 
+The context is a list of strings that may or may not be relevant to the question. 
+You need to choose the relevant context to answer the question and rephrase it in your answer.
+
+# chat history
+{% for item in chat_history %}
+## user:
+{{item.inputs.question}}
+## assistant:
+{{item.outputs.answer}}
+{% endfor %}
+
+# context
+{% for ctx in context %}
+## context:
+{{ctx}}
+{% endfor %}
+
+# user:
+{{question}}

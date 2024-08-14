@@ -1,0 +1,5 @@
+promptflow
+promptflow-tools
+python-dotenv
+faiss-cpu
+PyPDF2

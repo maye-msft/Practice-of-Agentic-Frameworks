@@ -19,8 +19,6 @@ With the popularity of intelligent agents, in order to simplify their developmen
  We will demonstrate the development practices of these frameworks in 
  - Chatbot
  - Function Invocation
- - Agent Implementation
- - Workflow orchestration
  - Retrieval-Augmented Generation(RAG)
 
 
@@ -99,7 +97,7 @@ Here is an example of creating a connection configuration with azure openai.
 
 ```shell
 # Override keys with --set to avoid yaml file changes
-pf connection create --file ../../connections/azure_openai.yml --set api_key=<your_api_key> api_base=<your_api_base> --name open_ai_connection
+pf connection create --file ./connections/azure_openai.yml --set api_key=<your_api_key> api_base=<your_api_base> --name open_ai_connection
 ```
 
 An example to create a connection configuration with openai.
@@ -560,3 +558,119 @@ Here is the screenshot of the UI.
 > We found LlamaIndex supports chat history by default. 
 
 You can find the complete code example in this [directory](./func/llamaindex/).
+
+## RAG (Retrieval-Augmented Generation)
+
+> Retrieval Augmented Generation (RAG) is an architecture that augments the capabilities of a Large Language Model (LLM) like ChatGPT by adding an information retrieval system that provides grounding data. Adding an information retrieval system gives you control over grounding data used by an LLM when it formulates a response. 
+
+We will build an example named "chat with pdf" and ask a question as below:
+
+__"What is the total amount of the 2023 Canadian federal budget multiplied by 3?"__
+
+### Promptflow
+
+Here is a [link](https://github.com/microsoft/promptflow/blob/main/examples/flows/chat/chat-with-pdf/chat_with_pdf/README.md) to a full example of the RAG chatbot using Promptflow. 
+
+We will implement a simple version of the RAG here. First, we need to make the pdf content vectorized and create a database to do similarity search. the result of the similarity search will be used as the context of the questions.
+
+We use the OpenAI's text-embedding-ada-002 as embedding model and [FAISS](https://github.com/facebookresearch/faiss) as similarity search engine to complete this task.
+
+```yaml
+$schema: https://azuremlschemas.azureedge.net/promptflow/latest/Flow.schema.json
+environment:
+  python_requirements_txt: requirements.txt
+inputs:
+  chat_history:
+    type: list
+    default: []
+  question:
+    type: string
+    is_chat_input: true
+    default: What is the total amount of the 2023 Canadian federal budget?
+outputs:
+  answer:
+    type: string
+    is_chat_output: true
+    reference: ${chat.output}
+nodes:
+- name: find_context
+  type: python
+  source:
+    type: code
+    path: find_context.py
+  inputs:
+    question: ${inputs.question}
+- name: chat
+  type: llm
+  source:
+    type: code
+    path: chat.jinja2
+  inputs:
+    deployment_name: gpt-4
+    model: gpt-4
+    max_tokens: "1024"
+    temperature: "0"
+    chat_history: ${inputs.chat_history}
+    question: ${inputs.question}
+    context: ${find_context.output}
+  connection: open_ai_connection
+  api: chat
+```
+
+We add a node named find_context_tool to find the context of the question. And the put the context into the chat node as the context parameter.
+
+```python
+from pdf_index import create_faiss_index, query_text
+
+pdf_path = "../../data/2023_canadian_budget.pdf"
+index = create_faiss_index(pdf_path)
+
+@tool
+def find_context_tool(question: str)->list:
+    result = query_text(index=index, text=question, top_k=5)
+    return [c.text for c in result]
+```
+
+You can find the pdf_index.py file [here](rag/promptflow/pdf_index.py). To save space, we only show the key code here.
+
+```jinja2
+# system:
+You are a helpful assistant. You can answer questions with the context provided. 
+The context is a list of strings that may or may not be relevant to the question. 
+You need to choose the relevant context to answer the question and rephrase it in your answer.
+
+# chat history
+{% for item in chat_history %}
+## user:
+{{item.inputs.question}}
+## assistant:
+{{item.outputs.answer}}
+{% endfor %}
+
+# context
+{% for ctx in context %}
+## context:
+{{ctx}}
+{% endfor %}
+
+# user:
+{{question}}
+```
+
+The above is the jinja2 template file to build the prompt where we can see the context and chat history are added to the prompt.
+
+You can find the complete code example in this [directory](./rag/promptflow/).
+
+> We can find how to implement a RAG chatbot in detail with this example, even though the indexing part looks complex.
+
+
+### LangChain
+
+
+
+
+
+
+
+
+

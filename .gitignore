@@ -165,3 +165,5 @@ cython_debug/
 **/.chainlit/
 **/chainlit.md
 **/.files/
+**/.index/
+**/.DS_Store
