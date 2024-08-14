@@ -1,0 +1,34 @@
+$schema: https://azuremlschemas.azureedge.net/promptflow/latest/Flow.schema.json
+environment:
+  python_requirements_txt: requirements.txt
+inputs:
+  question:
+    type: string
+    is_chat_input: true
+    default: What is ChatGPT?
+  is_index:
+    type: bool
+    default: false
+outputs:
+  answer:
+    type: string
+    reference: ${llamaindex_query.output}
+    is_chat_output: true
+nodes:
+- name: llamaindex_index
+  type: python
+  source:
+    type: code
+    path: llamaindex_indexing.py
+  inputs:
+    is_index: ${inputs.is_index}
+- name: llamaindex_query
+  type: python
+  source:
+    type: code
+    path: llamaindex_query.py
+  inputs:
+    question: ${inputs.question}
+    done: ${llamaindex_index.output}
+  depends_on:
+  - llamaindex_index

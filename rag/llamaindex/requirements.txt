@@ -1,0 +1,5 @@
+llama-index
+llama-index-embeddings-azure-openai
+llama-index-llms-azure-openai
+promptflow
+promptflow-tools
