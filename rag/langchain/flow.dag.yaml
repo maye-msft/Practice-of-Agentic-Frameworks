@@ -1,0 +1,26 @@
+$schema: https://azuremlschemas.azureedge.net/promptflow/latest/Flow.schema.json
+environment:
+  python_requirements_txt: requirements.txt
+inputs:
+  question:
+    type: string
+    is_chat_input: true
+    default: What are the main 3 cities?
+    is_chat_history: false
+  chat_history:
+    type: list
+    default: []
+    is_chat_history: true
+outputs:
+  answer:
+    type: string
+    reference: ${langchain_query.output}
+    is_chat_output: true
+nodes:
+- name: langchain_query
+  type: python
+  source:
+    type: code
+    path: langchain_query.py
+  inputs:
+    question: ${inputs.question}
