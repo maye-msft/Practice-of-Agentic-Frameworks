@@ -1,0 +1,4 @@
+llama-index
+llama-index-llms-azure-openai
+chainlit
+python-dotenv

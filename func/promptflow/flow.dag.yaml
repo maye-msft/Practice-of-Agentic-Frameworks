@@ -1,0 +1,25 @@
+$schema: https://azuremlschemas.azureedge.net/promptflow/latest/Flow.schema.json
+environment:
+  python_requirements_txt: requirements.txt
+inputs:
+  chat_history:
+    type: list
+    default: []
+  question:
+    type: string
+    is_chat_input: true
+    default: What is (121 * 3) + 42?
+outputs:
+  answer:
+    type: string
+    reference: ${autogen_task.output}
+    is_chat_output: true
+nodes:
+- name: autogen_task
+  type: python
+  source:
+    type: code
+    path: autogen_task.py
+  inputs:
+    question: ${inputs.question}
+    chat_history: ${inputs.chat_history}

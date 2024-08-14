@@ -1,0 +1,21 @@
+$schema: https://azuremlschemas.azureedge.net/promptflow/latest/Flow.schema.json
+environment:
+  python_requirements_txt: requirements.txt
+inputs:
+  question:
+    type: string
+    is_chat_input: true
+    default: What is (121 * 3) + 42?
+outputs:
+  answer:
+    type: string
+    reference: ${llamaindex_task.output}
+    is_chat_output: true
+nodes:
+- name: llamaindex_task
+  type: python
+  source:
+    type: code
+    path: llamaindex_task.py
+  inputs:
+    question: ${inputs.question}
