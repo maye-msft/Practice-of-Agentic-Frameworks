@@ -167,4 +167,5 @@ rag/llamaindex/index/
 **/chainlit.md
 **/.files/
 **/.index/
+**/.*-index/
 **/.DS_Store

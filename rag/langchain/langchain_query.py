@@ -2,34 +2,24 @@ import os
 from promptflow.core import tool
 from dotenv import load_dotenv
 
-from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
+from langchain_openai import AzureChatOpenAI
 from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, PromptTemplate
-from langchain_chroma import Chroma
-
-
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
-
+from langchain_indexing import create_faiss_index
 
 load_dotenv()
 
 model = AzureChatOpenAI(
-    api_key=os.environ["AZURE_OPENAI_API_KEY"],
+    api_key=os.environ["OPENAI_API_KEY"],
     azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
-    azure_deployment=os.environ["AZURE_OPENAI_DEPLOYMENT_NAME"],
-    openai_api_version=os.environ["AZURE_OPENAI_API_VERSION"],
+    azure_deployment=os.environ["CHAT_MODEL_DEPLOYMENT_NAME"],
+    openai_api_version=os.environ["OPENAI_API_VERSION"],
 )
 
-embeddings = AzureOpenAIEmbeddings(
-    azure_deployment=os.environ["AZURE_EMBEDDING_MODEL_DEPLOYMENT_NAME"],
-    openai_api_version=os.environ["AZURE_EMBEDDING_MODEL_OPENAI_API_VERSION"],
-)
 
-# Load the vector store from the persisted directory
-vectorstore = Chroma(
-    embedding_function=embeddings,
-    persist_directory="./index"
-)
+pdf_path = "../../data/2023_canadian_budget.pdf"
+vectorstore = create_faiss_index(pdf_path)
 
 @tool
 def query(question: str) -> str:

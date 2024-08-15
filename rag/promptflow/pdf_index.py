@@ -8,13 +8,15 @@ from faiss_indexer import FAISSIndexer
 
 chunk_size = int(os.environ.get("CHUNK_SIZE"))
 chunk_overlap = int(os.environ.get("CHUNK_OVERLAP"))
+
+INDEX_PATH = "../.promptflow-index"
     
 def create_faiss_index(pdf_path: str) -> FAISSIndexer:
-    file_name = f"pdf.index_{chunk_size}_{chunk_overlap}"
-    index_persistent_path = Path("./.index/") / file_name
-    index_persistent_path = index_persistent_path.resolve().as_posix()
     index = FAISSIndexer()
-    if not os.path.exists(index_persistent_path):
+    file_name = f"pdf.index_{chunk_size}_{chunk_overlap}"
+    index_persistent_path = Path(INDEX_PATH) / file_name
+    index_persistent_path = index_persistent_path.resolve().as_posix()
+    if not os.path.exists(INDEX_PATH):
         os.makedirs(index_persistent_path)
         pdf_reader = PyPDF2.PdfReader(pdf_path)
         text = ""
@@ -51,7 +53,7 @@ def query_text(index: FAISSIndexer, text: str, top_k=5) -> list:
 if __name__ == "__main__":
     pdf_path = "../../data/2023_canadian_budget.pdf"
     index = create_faiss_index(pdf_path)
-    results = search_text(index, "What is the total amount of the 2023 Canadian federal?")
+    results = query_text(index, "What is the total amount of the 2023 Canadian federal?")
     for result in results:
         print(result.text, result.score)
         print("----")

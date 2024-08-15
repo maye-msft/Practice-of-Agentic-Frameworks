@@ -5,7 +5,7 @@ inputs:
   question:
     type: string
     is_chat_input: true
-    default: What are the main 3 cities?
+    default: What is the total amount of the 2023 Canadian federal budget?
     is_chat_history: false
   chat_history:
     type: list

@@ -5,10 +5,7 @@ inputs:
   question:
     type: string
     is_chat_input: true
-    default: What is ChatGPT?
-  is_index:
-    type: bool
-    default: false
+    default: What is the total amount of the 2023 Canadian federal budget?
 outputs:
   answer:
     type: string
@@ -20,8 +17,7 @@ nodes:
   source:
     type: code
     path: llamaindex_indexing.py
-  inputs:
-    is_index: ${inputs.is_index}
+  inputs: {}
 - name: llamaindex_query
   type: python
   source:
@@ -29,6 +25,6 @@ nodes:
     path: llamaindex_query.py
   inputs:
     question: ${inputs.question}
-    done: ${llamaindex_index.output}
+    is_index: ${llamaindex_index.output}
   depends_on:
   - llamaindex_index

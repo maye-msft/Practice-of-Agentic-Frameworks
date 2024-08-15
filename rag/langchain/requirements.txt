@@ -1,7 +1,8 @@
 langchain
-langchain_community
+langchain-community
 langchain-openai
-langchain_chroma
 promptflow
 promptflow-tools
 pypdf
+faiss-cpu
+chainlit

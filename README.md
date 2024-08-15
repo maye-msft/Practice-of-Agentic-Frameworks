@@ -659,12 +659,130 @@ You need to choose the relevant context to answer the question and rephrase it i
 
 The above is the jinja2 template file to build the prompt where we can see the context and chat history are added to the prompt.
 
+To run this example, we need to create a connection configuration with OpenAI.
+
+```shell
+pf connection create --file ./connections/azure_openai.yml --set api_key=<your_api_key> api_base=<your_api_base> --name open_ai_connection
+pf flow test --flow . --interactive --ui
+```
+
 You can find the complete code example in this [directory](./rag/promptflow/).
 
 > We can find how to implement a RAG chatbot in detail with this example, even though the indexing part looks complex.
 
 
 ### LangChain
+
+LangChain has a better community support of FAISS. It means we can write less code to implement the RAG with the same FAISS indexing. 
+
+Here is the [python file](rag/langchain/langchain_indexing.py) to create the FAISS index in LangChain. 
+
+And the Promptflow tool is like this.
+
+```python
+pdf_path = "../../data/2023_canadian_budget.pdf"
+vectorstore = create_faiss_index(pdf_path)
+
+@tool
+def query(question: str) -> str:
+
+    retriever = vectorstore.as_retriever()
+
+    # Define the template string
+    template_string = """
+    You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. 
+    If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.
+
+    Context:
+    {context}
+
+    Question:
+    {question}
+
+    Answer:
+    """
+
+    # Format the prompt with the context and question
+    prompt = ChatPromptTemplate(
+        input_variables=['context', 'question'], 
+        messages=[
+            HumanMessagePromptTemplate(prompt=PromptTemplate(
+                input_variables=['context', 'question'], 
+                template=template_string))])
+
+    def format_docs(docs):
+        return "\n\n".join(doc.page_content for doc in docs)
+
+
+    rag_chain = (
+        {"context": retriever | format_docs, "question": RunnablePassthrough()}
+        | prompt
+        | model
+        | StrOutputParser()
+    )
+
+    return rag_chain.invoke(question)
+```
+
+Logically, the code is similar to the Promptflow example. In this example, we leverage the LangChain Expression Language (LCEL) which is a special language to define the flow in LangChain. You can find more information about LCEL in the [official documentation](https://python.langchain.com/v0.1/docs/expression_language/why/).
+
+Here is the command to start this example.
+
+```shell
+pf flow test --flow . --interactive --ui
+```
+
+You can find the complete code example in this [directory](./rag/langchain/).
+
+### LlamaIndex
+
+LlamaIndex has a more straightforward way to implement the RAG chatbot. It support a built-in indexing mechanism to support the RAG.
+
+LlamaIndex provides a [SimpleDirectoryReader](https://docs.llamaindex.ai/en/stable/api_reference/readers/simple_directory_reader/) to read the files and a [VectorStoreIndex](https://docs.llamaindex.ai/en/stable/module_guides/indexing/vector_store_index/) to index the files. It also need an embed_model to vectorize the text.
+
+```python
+reader = SimpleDirectoryReader(DATA_PATH)
+documents = reader.load_data()
+index = VectorStoreIndex.from_documents(
+    documents, embed_model=embed_model, transformations=[text_splitter], show_progress=True
+)
+index.storage_context.persist(persist_dir=INDEX_PATH)
+```
+
+Meanwhile, LlamaIndex provides [QueryEngine](https://ts.llamaindex.ai/modules/query_engines/) to retrieve the context and generate the response. It is to simplify the process of building a RAG chatbot.
+
+```python
+@tool
+def query(question: str, is_index: str) -> str:
+    # rebuild storage context
+    storage_context = StorageContext.from_defaults(persist_dir=INDEX_PATH)
+
+    # load index
+    index = load_index_from_storage(storage_context)
+
+    retriever = VectorIndexRetriever(
+        index=index,
+        similarity_top_k=10,
+        embed_model=embed_model,
+    )
+
+    # configure response synthesizer
+    response_synthesizer = get_response_synthesizer()
+
+    # assemble query engine
+    query_engine = RetrieverQueryEngine(
+        retriever=retriever,
+        response_synthesizer=response_synthesizer,
+        node_postprocessors=[SimilarityPostprocessor(similarity_cutoff=0.7)],
+    )
+    response = query_engine.query(question)
+
+    return response.response
+```
+
+You can find the complete code example in this [directory](./rag/llamaindex/).
+
+
 
 
 

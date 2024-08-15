@@ -26,7 +26,7 @@ class FAISSIndexer:
     def __init__(self) -> None:
         self.docs = {}  # id -> doc, doc is (text, metadata)
         self.embedding = Embedding()
-        self.index = faiss.IndexFlatL2(1536),
+        self.index = faiss.IndexFlatL2(1536)
 
     def insert_batch(
         self, texts: Iterable[str], metadatas: Optional[List[dict]] = None
