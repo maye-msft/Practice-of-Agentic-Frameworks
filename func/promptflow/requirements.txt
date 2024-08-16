@@ -1,4 +1,4 @@
 pyautogen==0.2.23
-promptflow==1.10.1
-promptflow-tools==1.4.0
+promptflow
+promptflow-tools
 python-dotenv

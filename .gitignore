@@ -162,7 +162,7 @@ cython_debug/
 #.idea/
 
 rag/llamaindex/index/
-**/.chainlit/**/*.*
+**/.chainlit/
 **/.promptflow/
 **/chainlit.md
 **/.files/

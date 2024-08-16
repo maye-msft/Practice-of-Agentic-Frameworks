@@ -4,3 +4,4 @@ llama-index-llms-azure-openai
 promptflow==1.10.1
 promptflow-tools==1.4.0
 python-dotenv
+chainlit

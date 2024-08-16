@@ -10,8 +10,8 @@ async def on_chat_start():
 @cl.on_message
 async def on_message(message: cl.Message):
     agent = cl.user_session.get("agent")  # type: LlamaIndexMathAgent
-    res = agent.execute(message.content)
-    await cl.Message(content=res).send()
+    await agent.aexecute(message.content, cl)
+
     
     
 

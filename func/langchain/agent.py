@@ -3,8 +3,11 @@ from langchain_openai import AzureChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.tools import tool
 from langchain.agents import AgentExecutor, create_tool_calling_agent
-
+from langchain.schema.runnable.config import RunnableConfig
+import chainlit as cl
+import asyncio
 from dotenv import load_dotenv
+load_dotenv()
 import os
 
 class LangChainMathAgent:
@@ -87,10 +90,28 @@ class LangChainMathAgent:
         res = self.agent_executor.invoke({"input": question, "history": chat_history})
         return res["output"]
     
+    async def aexecute(self, question: str, chat_history: list, cl: cl) -> str:
+        msg = cl.Message(content="")
+        
+        async for chunk in self.agent_executor.astream(
+            {"input": question, "history": chat_history},
+            config=RunnableConfig(callbacks=[cl.LangchainCallbackHandler()])
+        ):
+            if chunk.get('output') is None:
+                continue
+            await msg.stream_token(chunk.get('output'))
+
+        await msg.update() 
+        
+        return msg.content
+
+    
     
 if __name__ == "__main__":
     agent = LangChainMathAgent()
-    response = agent.execute("What is 2 plus 2?", [])
+    response = agent.execute("What is 2 plus 2?", [], cl)
     print(response)
+    
+    
     
    

@@ -1,14 +1,10 @@
 from promptflow.core import tool
-from promptflow.connections import AzureOpenAIConnection
-from autogen import ConversableAgent, GroupChat, GroupChatManager, register_function, AssistantAgent, UserProxyAgent
-
+from autogen import GroupChat, GroupChatManager, register_function, AssistantAgent, UserProxyAgent
 
 from dotenv import load_dotenv
 load_dotenv()
 
 import os
-
-
 
 class AutoGenChat:
     def __init__(self) -> None:
