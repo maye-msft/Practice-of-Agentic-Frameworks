@@ -1,4 +1,4 @@
-# Practices of Agentic Frameworks
+# Practice of Agentic Frameworks
 
 ## Introduction
 
